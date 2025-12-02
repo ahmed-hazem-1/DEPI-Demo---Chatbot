@@ -14,10 +14,19 @@ class DEPIChatbot {
         this.isStreaming = false;
         this.messageCount = 0;
         this.maxMessages = 100; // Keep only last 100 messages to prevent performance issues
+        this.sessionId = this.generateSessionId(); // Generate unique session ID
 
         this.initializeEventListeners();
         this.detectLanguage();
         this.addTypingEffect();
+    }
+
+    generateSessionId() {
+        // Generate a unique session ID combining timestamp and random string
+        const timestamp = Date.now();
+        const randomString = Math.random().toString(36).substring(2, 15) + 
+                           Math.random().toString(36).substring(2, 15);
+        return `session_${timestamp}_${randomString}`;
     }
 
     initializeEventListeners() {
@@ -180,6 +189,7 @@ class DEPIChatbot {
                 },
                 body: JSON.stringify({
                     message: message,
+                    sessionId: this.sessionId,
                     stream: true,
                 }),
             });

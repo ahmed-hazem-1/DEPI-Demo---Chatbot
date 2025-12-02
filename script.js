@@ -188,23 +188,65 @@ class DEPIChatbot {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            // For streaming responses
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let fullResponse = '';
             let isFirstChunk = true;
             let buffer = '';
+            let contentDiv = indicatorElement.querySelector('.message-content');
+            let charIndex = 0; // For typing effect
+            let typeTimer;
+
+            const renderFullContent = () => {
+                if (!contentDiv) return;
+                
+                contentDiv.innerHTML = marked.parse(fullResponse);
+                
+                // Apply direction to paragraphs
+                const paragraphs = contentDiv.querySelectorAll('p');
+                paragraphs.forEach(p => {
+                    p.dir = 'auto';
+                    p.style.unicodeBidi = 'embed';
+                });
+                
+                // Highlight code blocks
+                contentDiv.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+
+                // Smooth scroll
+                requestAnimationFrame(() => {
+                    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+                });
+            };
+
+            const typeCharacter = () => {
+                if (charIndex < fullResponse.length) {
+                    contentDiv.textContent = fullResponse.substring(0, charIndex + 1);
+                    charIndex++;
+                    typeTimer = setTimeout(typeCharacter, 15); // Typing speed: 15ms per character
+                    
+                    // Scroll as text appears
+                    requestAnimationFrame(() => {
+                        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+                    });
+                } else {
+                    // When typing completes, render full markdown
+                    clearTimeout(typeTimer);
+                    renderFullContent();
+                }
+            };
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const chunk = decoder.decode(value);
+                const chunk = decoder.decode(value, { stream: true });
                 buffer += chunk;
 
                 // Process complete JSON lines
                 const lines = buffer.split('\n');
-                buffer = lines[lines.length - 1]; // Keep incomplete line in buffer
+                buffer = lines[lines.length - 1];
 
                 for (let i = 0; i < lines.length - 1; i++) {
                     const line = lines[i].trim();
@@ -213,54 +255,39 @@ class DEPIChatbot {
                     try {
                         const jsonData = JSON.parse(line);
                         
-                        // Extract content from different message types
                         if (jsonData.type === 'item' && jsonData.content) {
-                            const content = jsonData.content;
-                            fullResponse += content;
+                            fullResponse += jsonData.content;
 
-                            // On first chunk, replace indicator with actual content
                             if (isFirstChunk) {
-                                const contentDiv = indicatorElement.querySelector('.message-content');
                                 contentDiv.innerHTML = '';
                                 isFirstChunk = false;
+                                // Start typing effect
+                                typeCharacter();
                             }
-
-                            // Update the message with markdown parsing
-                            const contentDiv = indicatorElement.querySelector('.message-content');
-                            contentDiv.innerHTML = marked.parse(fullResponse);
-
-                            // Highlight code blocks
-                            contentDiv.querySelectorAll('pre code').forEach((block) => {
-                                hljs.highlightElement(block);
-                            });
-
-                            // Auto-scroll to bottom with requestAnimationFrame
-                            requestAnimationFrame(() => {
-                                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-                            });
                         }
                     } catch (e) {
-                        // Skip invalid JSON lines
                         continue;
                     }
                 }
             }
 
-            // Process any remaining content in buffer
+            // Process remaining buffer
             if (buffer.trim()) {
                 try {
                     const jsonData = JSON.parse(buffer);
                     if (jsonData.type === 'item' && jsonData.content) {
                         fullResponse += jsonData.content;
-                        const contentDiv = indicatorElement.querySelector('.message-content');
-                        contentDiv.innerHTML = marked.parse(fullResponse);
-                        contentDiv.querySelectorAll('pre code').forEach((block) => {
-                            hljs.highlightElement(block);
-                        });
                     }
                 } catch (e) {
-                    // Ignore final buffer parse errors
+                    // Ignore
                 }
+            }
+
+            // If typing hasn't started, start it now
+            if (isFirstChunk && fullResponse) {
+                contentDiv.innerHTML = '';
+                isFirstChunk = false;
+                typeCharacter();
             }
 
             return fullResponse;

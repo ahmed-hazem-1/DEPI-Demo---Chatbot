@@ -191,103 +191,133 @@ class DEPIChatbot {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let fullResponse = '';
-            let isFirstChunk = true;
             let buffer = '';
             let contentDiv = indicatorElement.querySelector('.message-content');
-            let charIndex = 0; // For typing effect
+            let displayedText = '';
+            let charIndex = 0;
             let typeTimer;
+            let isStreaming = true;
 
-            const renderFullContent = () => {
+            const renderMarkdown = (text) => {
                 if (!contentDiv) return;
                 
-                contentDiv.innerHTML = marked.parse(fullResponse);
-                
-                // Apply direction to paragraphs
-                const paragraphs = contentDiv.querySelectorAll('p');
-                paragraphs.forEach(p => {
-                    p.dir = 'auto';
-                    p.style.unicodeBidi = 'embed';
-                });
-                
-                // Highlight code blocks
-                contentDiv.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightElement(block);
-                });
+                try {
+                    contentDiv.innerHTML = marked.parse(text);
 
-                // Smooth scroll
-                requestAnimationFrame(() => {
-                    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-                });
-            };
+                    // Apply direction to paragraphs
+                    const paragraphs = contentDiv.querySelectorAll('p');
+                    paragraphs.forEach(p => {
+                        p.dir = 'auto';
+                        p.style.unicodeBidi = 'embed';
+                    });
 
-            const typeCharacter = () => {
-                if (charIndex < fullResponse.length) {
-                    // Always show current full response up to charIndex
-                    contentDiv.textContent = fullResponse.substring(0, charIndex + 1);
-                    charIndex++;
-                    typeTimer = setTimeout(typeCharacter, 15); // Typing speed: 15ms per character
-                    
-                    // Scroll as text appears
+                    // Highlight code blocks
+                    contentDiv.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+
+                    // Auto scroll
                     requestAnimationFrame(() => {
                         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
                     });
-                } else {
-                    // When typing completes, render full markdown
-                    clearTimeout(typeTimer);
-                    renderFullContent();
+                } catch (e) {
+                    console.error('Error rendering:', e);
                 }
             };
 
-            // Collect entire stream first
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            const typeNextCharacter = () => {
+                if (charIndex < fullResponse.length) {
+                    charIndex++;
+                    displayedText = fullResponse.substring(0, charIndex);
+                    
+                    renderMarkdown(displayedText);
+                    typeTimer = setTimeout(typeNextCharacter, 8); // Smooth typing speed
+                } else if (isStreaming) {
+                    // Still streaming, wait a bit and try again
+                    typeTimer = setTimeout(typeNextCharacter, 50);
+                } else {
+                    // Streaming complete, do final render
+                    clearTimeout(typeTimer);
+                    renderMarkdown(fullResponse);
+                }
+            };
 
-                const chunk = decoder.decode(value, { stream: true });
-                buffer += chunk;
+            // Start typing animation immediately
+            contentDiv.innerHTML = '';
+            typeNextCharacter();
 
-                // Process complete JSON lines
-                const lines = buffer.split('\n');
-                buffer = lines[lines.length - 1];
+            // Collect stream in background
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                for (let i = 0; i < lines.length - 1; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
+                    const chunk = decoder.decode(value, { stream: true });
+                    if (chunk) {
+                        buffer += chunk;
 
-                    try {
-                        const jsonData = JSON.parse(line);
-                        
-                        if (jsonData.type === 'item' && jsonData.content) {
-                            fullResponse += jsonData.content;
+                        // Process complete JSON lines
+                        const lines = buffer.split('\n');
+                        buffer = lines[lines.length - 1];
+
+                        for (let i = 0; i < lines.length - 1; i++) {
+                            const line = lines[i].trim();
+                            if (!line) continue;
+
+                            try {
+                                const jsonData = JSON.parse(line);
+                                if (jsonData.type === 'item' && jsonData.content) {
+                                    fullResponse += jsonData.content;
+                                }
+                            } catch (e) {
+                                console.error('JSON parse error:', e);
+                            }
                         }
-                    } catch (e) {
-                        console.error('JSON parse error:', e, 'line:', line);
-                        continue;
                     }
                 }
+            } catch (e) {
+                console.error('Stream read error:', e);
+            }
+
+            // Final decode to flush remaining data
+            const finalChunk = decoder.decode();
+            if (finalChunk) {
+                buffer += finalChunk;
             }
 
             // Process remaining buffer
             if (buffer.trim()) {
-                try {
-                    const jsonData = JSON.parse(buffer);
-                    if (jsonData.type === 'item' && jsonData.content) {
-                        fullResponse += jsonData.content;
+                const lines = buffer.split('\n');
+                for (let line of lines) {
+                    line = line.trim();
+                    if (!line) continue;
+                    try {
+                        const jsonData = JSON.parse(line);
+                        if (jsonData.type === 'item' && jsonData.content) {
+                            fullResponse += jsonData.content;
+                        }
+                    } catch (e) {
+                        console.error('Final parse error:', e);
                     }
-                } catch (e) {
-                    console.error('Final buffer parse error:', e);
                 }
             }
 
-            // Now start typing effect with complete response
-            if (fullResponse) {
-                contentDiv.innerHTML = '';
-                typeCharacter();
+            // Mark streaming as complete
+            isStreaming = false;
+            
+            // Wait for typing to catch up
+            while (charIndex < fullResponse.length) {
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
+
+            // Final render
+            clearTimeout(typeTimer);
+            renderMarkdown(fullResponse);
 
             return fullResponse;
         } catch (error) {
             console.error('Streaming error:', error);
+            indicatorElement.querySelector('.message-content').textContent = 'Error: Failed to get response. Please try again.';
             throw error;
         }
     }

@@ -222,6 +222,7 @@ class DEPIChatbot {
 
             const typeCharacter = () => {
                 if (charIndex < fullResponse.length) {
+                    // Always show current full response up to charIndex
                     contentDiv.textContent = fullResponse.substring(0, charIndex + 1);
                     charIndex++;
                     typeTimer = setTimeout(typeCharacter, 15); // Typing speed: 15ms per character
@@ -237,6 +238,7 @@ class DEPIChatbot {
                 }
             };
 
+            // Collect entire stream first
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
@@ -257,15 +259,9 @@ class DEPIChatbot {
                         
                         if (jsonData.type === 'item' && jsonData.content) {
                             fullResponse += jsonData.content;
-
-                            if (isFirstChunk) {
-                                contentDiv.innerHTML = '';
-                                isFirstChunk = false;
-                                // Start typing effect
-                                typeCharacter();
-                            }
                         }
                     } catch (e) {
+                        console.error('JSON parse error:', e, 'line:', line);
                         continue;
                     }
                 }
@@ -279,14 +275,13 @@ class DEPIChatbot {
                         fullResponse += jsonData.content;
                     }
                 } catch (e) {
-                    // Ignore
+                    console.error('Final buffer parse error:', e);
                 }
             }
 
-            // If typing hasn't started, start it now
-            if (isFirstChunk && fullResponse) {
+            // Now start typing effect with complete response
+            if (fullResponse) {
                 contentDiv.innerHTML = '';
-                isFirstChunk = false;
                 typeCharacter();
             }
 

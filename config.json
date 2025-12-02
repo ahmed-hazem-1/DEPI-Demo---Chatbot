@@ -1,0 +1,35 @@
+{
+  "webhookConfig": {
+    "url": "https://your-n8n-instance.com/webhook/chat",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "timeout": 30000,
+    "retryAttempts": 3,
+    "retryDelay": 1000
+  },
+  "chatbotConfig": {
+    "name": "DEPI Assistant",
+    "language": "auto-detect",
+    "supportedLanguages": ["en", "ar"],
+    "streaming": true,
+    "autoScroll": true,
+    "maxMessages": 100
+  },
+  "theme": {
+    "primaryColor": "#1e3a5f",
+    "secondaryColor": "#f39c12",
+    "accentColor": "#3498db",
+    "borderRadius": "16px",
+    "position": "bottom-right",
+    "width": "380px",
+    "maxHeight": "600px"
+  },
+  "messages": {
+    "welcome": "مرحبا! 👋 Hello! How can I help you today?",
+    "placeholder": "Type your message... (عربي / English)",
+    "error": "Sorry, I encountered an error. Please try again.",
+    "loading": "Thinking..."
+  }
+}

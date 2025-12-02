@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEPI Chatbot</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Marked for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+</head>
+<body>
+    <!-- Clean Empty Background -->
+    <div class="animated-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Main Page Content -->
+    <div class="page-container">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-container">
+                    <div>
+                        <h1>DEPI</h1>
+                        <p class="subtitle">Digital Egypt Platform Initiative</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <main class="main-content">
+            <div class="logo-display">
+                <img src="DEPI Logo.png" alt="DEPI Logo" class="depi-logo">
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2024 DEPI - Digital Egypt Platform Initiative</p>
+            <div class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Privacy</a>
+                <a href="#">Contact</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Chatbot Widget -->
+    <div class="chatbot-widget">
+        <div class="chatbot-header">
+            <h3>DEPI Assistant</h3>
+            <button class="toggle-btn" id="toggleChat">−</button>
+        </div>
+        
+        <div class="chatbot-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot-message">
+                    <div class="message-content">
+                        <p>مرحبا! 👋 Hello! How can I help you today?</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    placeholder="Type your message..." 
+                    class="chat-input"
+                    dir="auto"
+                >
+                <button class="send-btn" id="sendBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

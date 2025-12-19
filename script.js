@@ -4,7 +4,7 @@
 
 class DEPIChatbot {
     constructor() {
-        this.webhookUrl = 'https://mogeeb.shop/webhook/28936085-3283-4f68-b158-6d451ae34d21';
+        this.webhookUrl = 'https://mogeeb.shop/webhook/4f5a098e-9192-4090-8093-b57470f3f4a0';
         this.messageInput = document.getElementById('messageInput');
         this.sendBtn = document.getElementById('sendBtn');
         this.chatMessages = document.getElementById('chatMessages');
